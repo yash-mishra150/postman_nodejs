@@ -1,7 +1,7 @@
 # Backend for Api Testing Tools
 
 ## env file items:
-DB_URL=postgresql://your_username:your_password@your_host:your_port/my_database
+DB_URL=postgresql://your_username:your_password@your_host:your_port/my_database <br/>
 DB_NAME=my_database
 
 ## this the backend project with endpoints:
