@@ -26,7 +26,7 @@ router.post('/request', [
     }
     const em = req.app.get('em') as EntityManager;
 
-    const { method, url, headers, requestBody } = req.body;
+    const { method, url, headers, requestBody, clientId } = req.body;
     
     // Move the timer initialization outside the try-catch block
     const startTime = Date.now();
@@ -43,44 +43,118 @@ router.post('/request', [
         // Calculate response time
         const responseTime = Date.now() - startTime;
 
-        // Log the request and response in the database
-        const log = new RequestLog();
-        log.method = method;
-        log.url = url;
-        log.headers = headers;
-        log.requestBody = requestBody;
-        log.responseBody = response.data;
-        log.statusCode = response.status;
-        log.responseTime = responseTime; // Add the measured response time
+        // Find existing log by clientId or create new one
+        let log: RequestLog | null = null;
+        
+        // If clientId provided, try to find the existing log
+        if (clientId) {
+            const id = parseInt(clientId, 10);
+            if (!isNaN(id)) {
+                log = await em.findOne(RequestLog, { id });
+            }
+        }
+        
+        if (log) {
+            // Update existing log
+            log.method = method;
+            log.url = url;
+            log.headers = headers;
+            log.requestBody = requestBody;
+            log.responseBody = response.data;
+            log.statusCode = response.status;
+            log.responseTime = responseTime;
+            log.timestamp = new Date(); // Update timestamp
+            
+            await em.flush();
+            
+            // Send back the response to the client
+            res.status(response.status).json({
+                message: 'Request successful and log updated!',
+                response: response.data,
+                clientId: log.id.toString(), // Return the ID for future updates
+                log
+            });
+        } else {
+            // Create new log (when no clientId is provided or it doesn't match any record)
+            log = new RequestLog();
+            log.method = method;
+            log.url = url;
+            log.headers = headers;
+            log.requestBody = requestBody;
+            log.responseBody = response.data;
+            log.statusCode = response.status;
+            log.responseTime = responseTime;
 
-        await em.persistAndFlush(log);
+            await em.persistAndFlush(log);
 
-        // Send back the response to the client
-        res.status(response.status).json({
-            message: 'Request successful and logged!',
-            response: response.data,
-        });
+            // Send back the response to the client
+            res.status(response.status).json({
+                message: 'Request successful and new log created!',
+                response: response.data,
+                clientId: log.id.toString(), // Return the ID for future updates
+                log
+            });
+        }
     } catch (error: any) {
         // Calculate response time even for failed requests
-        const responseTime = Date.now() - startTime; // This requires startTime to be defined above
+        console.log('Error:', error.message);
+        console.log('Error response:', error.response?.data);
+        const responseTime = Date.now() - startTime;
 
-        // Log the error in case of failure
-        const log = new RequestLog();
-        log.method = method;
-        log.url = url;
-        log.headers = headers;
-        log.requestBody = requestBody;
-        log.responseBody = error.response?.data || error.message;
-        log.statusCode = error.response?.status || 500;
-        log.responseTime = responseTime; // Add the measured response time
+        // Find existing log by clientId or create new one for error cases too
+        let log: RequestLog | null = null;
+        
+        // If clientId provided, try to find the existing log
+        if (clientId) {
+            const id = parseInt(clientId, 10);
+            if (!isNaN(id)) {
+                log = await em.findOne(RequestLog, { id });
+            }
+        }
+        
+        if (log) {
+            // Update existing log with error details
+            log.method = method;
+            log.url = url;
+            log.headers = headers;
+            log.requestBody = requestBody;
+            log.responseBody = error.response?.data || { error: error.message };
+            log.statusCode = error.response?.status || 500;
+            log.responseTime = responseTime;
+            log.timestamp = new Date(); // Update timestamp
+            
+            await em.flush();
+            
+            // Send error response
+            res.status(error.response?.status || 500).json({
+                message: 'Request failed and log updated!',
+                responseTime,
+                error: error.response?.data,
+                clientId: log.id.toString(),
+                log
+            });
+        } else {
+            // Create new log for error (when no clientId is provided or it doesn't match any record)
+            log = new RequestLog();
+            log.method = method;
+            log.url = url;
+            log.headers = headers;
+            log.requestBody = requestBody;
+            log.responseBody = error.response?.data || { error: error.message };
+            log.statusCode = error.response?.status || 500;
+            log.responseTime = responseTime;
 
-        await em.persistAndFlush(log);
+            await em.persistAndFlush(log);
 
-        // Send error response
-        res.status(500).json({
-            message: 'Request failed and logged!',
-            error: error.response?.data || error.message,
-        });
+            // Send error response
+            res.status(error.response?.status || 500).json({
+                message: 'Request failed and new log created!',
+                responseTime,
+                error: error.response?.data,
+                clientId: log.id.toString(),
+                log
+            });
+        }
     }
 });
 
