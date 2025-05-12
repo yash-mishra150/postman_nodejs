@@ -2,7 +2,6 @@
 
 **API Tester** is a powerful and lightweight API testing tool built for developers. Similar to Postman, but fully online and accessible from any browser, it enables you to send HTTP requests, inspect responses, and debug APIs with ease.
 
----
 
 ## 📦 Features
 
@@ -11,7 +10,7 @@
 - 🗃️ Save requests into collections
 - 📊 View detailed response info: status, headers, time, and size
 
----
+
 
 ## 🚀 Getting Started
 
