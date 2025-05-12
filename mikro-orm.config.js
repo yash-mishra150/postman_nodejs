@@ -44,16 +44,16 @@ dotenv_1.default.config();
 exports.default = (0, postgresql_1.defineConfig)({
     // Use only the connection string for cloud-hosted PostgreSQL
     clientUrl: process.env.DB_URL,
-    // pool: {
-    //     min: 2,
-    //     max: 10,
-    //     acquireTimeoutMillis: 15000, // 15 seconds timeout
-    //     createTimeoutMillis: 15000,
-    //     destroyTimeoutMillis: 5000,
-    //     idleTimeoutMillis: 60000, // Connection timeout after 1 minute idle
-    //     reapIntervalMillis: 1000, // Check for idle connections every 1 second
-    //     createRetryIntervalMillis: 200, // Retry creating connection after 200ms
-    // },
+    pool: {
+        min: 2,
+        max: 10,
+        acquireTimeoutMillis: 15000, // 15 seconds timeout
+        createTimeoutMillis: 15000,
+        destroyTimeoutMillis: 5000,
+        idleTimeoutMillis: 60000, // Connection timeout after 1 minute idle
+        reapIntervalMillis: 1000, // Check for idle connections every 1 second
+        createRetryIntervalMillis: 200, // Retry creating connection after 200ms
+    },
     // Set generous timeout
     // Removed connectionTimeout as it is not a valid property
     // Comment out individual connection parameters 
